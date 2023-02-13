@@ -1,33 +1,25 @@
-const {Schema} = require('mongoose');
-const MongoContainer = require('../../containers/mongo.container');
+const MongoContainer = require('../../container/mongo.container');
+const userSchema = require('../../schemas/mongo.schemas/user.schema');
+const { HttpError, HTTP_STATUS } = require("../../../utils/api.utils");
+const CartMongoDao = require('../carts/carts.mongo.dao');
+const CartDTO = require('../../dtos/carts.dto');
 
 const collection = 'users';
+const Cart = new CartMongoDao();
 
-const usersSchema = new Schema({
-    name: {type: String, required: true},    
-    address: {type: String, required: true},
-    age: {type: Number, required: true},
-    /* image: { type: String, required: true}, */
-    email: {type: String,
-      required: true,
-      unique: true,
-      match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g, "Invalid email"]
-  },   
-  password: {type: String, required: true},
-    createdAt: {type: Date, default: new Date().toLocaleString()},
-    updatedAt: {type: Date, default: new Date().toLocaleString()},
-    
-});
 
 class UserMongoDao extends MongoContainer {
     constructor() {
-        super(collection, usersSchema);      }
+        super(collection, userSchema);      }
     
       async createUser(userItem) {        
         try {          
-          const user = await this.save(userItem); 
-          console.log('entro a try');
-          console.log(user);     
+          const user = await this.save(userItem);
+          const cartItem = new CartDTO; 
+          cartItem.user = user._id;  
+          const cart = await Cart.save(cartItem); 
+          user.cart = [cart._id];   
+          await user.save();       
           return user;
         }
         catch(error) {
